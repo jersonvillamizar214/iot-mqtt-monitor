@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# IoT Monitor — MQTT en tiempo real
 
-## Getting Started
+[![CI](https://github.com/jersonvillamizar214/iot-mqtt-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/jersonvillamizar214/iot-mqtt-monitor/actions/workflows/ci.yml)
 
-First, run the development server:
+Real-time industrial monitoring over **MQTT**: plant telemetry streams from the machines to a broker, and the browser subscribes to it directly — no backend in between. Live trends, alarm thresholds, and a device simulator so the demo always has data.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+> Part of my developer portfolio. Runs on HiveMQ's free public broker — no cost, no account.
+
+## What it demonstrates
+
+- **MQTT pub/sub**: devices publish, dashboards subscribe; neither knows the other exists.
+- **MQTT over WebSockets**: a browser cannot open the raw TCP socket that `mqtt://` needs, so it connects over `wss://` to the same broker the machines publish to.
+- **Topic hierarchy and wildcards**: one subscription to `northwind/plant-1/+/telemetry` covers every machine.
+- **QoS trade-off**: telemetry uses **QoS 0** (at most once) — a dropped sample is replaced by the next one 2 seconds later, and it avoids the acknowledgement round-trips of QoS 1/2.
+- **Threshold alarms**: each sensor has warn/critical bands; excursions surface instantly in the alarm feed.
+
+## Architecture
+
+```
+  PLC / sensores           Broker MQTT              Navegador
+  (scripts/simulator)      (HiveMQ público)         (este panel)
+
+  ┌──────────────┐  TCP    ┌──────────────┐  WSS   ┌──────────────┐
+  │  publish     │────────▶│              │◀───────│  subscribe   │
+  │  .../press-01│         │   northwind/ │        │  .../+/      │
+  │  /telemetry  │         │   plant-1/#  │        │  telemetry   │
+  └──────────────┘         └──────────────┘        └──────────────┘
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Machines: hydraulic press, tempering furnace and compressor. Sensors: temperature, pressure, vibration and power draw.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Data sources
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Two ways to feed the dashboard — both publish the exact same contract (`src/lib/telemetry.ts`):
 
-## Learn More
+| Source | Command | Transport |
+| --- | --- | --- |
+| Node device simulator (acts like a plant gateway / PLC) | `npm run simulator` | TCP |
+| In-browser simulator (checkbox in the UI, on by default) | — | WebSocket |
 
-To learn more about Next.js, take a look at the following resources:
+The in-browser simulator exists so the deployed demo shows live data without anyone running a script.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Run locally
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm install
+npm run dev          # http://localhost:3000
 
-## Deploy on Vercel
+npm run simulator    # optional: publish from Node, like real hardware would
+npm run verify       # round-trip test: publish → broker → subscribe
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Verified round trip
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+Conectado a mqtt://broker.hivemq.com:1883
+Suscrito a northwind/plant-1/+/telemetry
+
+  → publicado press-01
+  ← recibido press-01 (62.3°C) en northwind/plant-1/press-01/telemetry
+  ...
+  ok  3/3 máquinas: publish → broker → subscribe
+  ok  todas las lecturas tienen los 4 sensores válidos
+```
+
+`npm run verify` talks to the real public broker, so it is kept out of CI — an external service should not be able to turn the build red. CI runs lint, type-check, build and the Docker image.
+
+## Configuration
+
+| Variable | Default |
+| --- | --- |
+| `NEXT_PUBLIC_MQTT_BROKER_WS` | `wss://broker.hivemq.com:8884/mqtt` |
+| `MQTT_BROKER_TCP` | `mqtt://broker.hivemq.com:1883` |
+| `NEXT_PUBLIC_MQTT_TOPIC_PREFIX` | `northwind/plant-1` |
+
+The broker is **public and shared**: anyone can publish to any topic. The dashboard ignores payloads that don't match its schema, and the topic prefix can be changed for a quieter channel. A production deployment would use an authenticated broker (HiveMQ Cloud, EMQX, Mosquitto) with TLS and per-device credentials.
+
+## Tech Stack
+
+Next.js 16 · TypeScript · MQTT.js · Tailwind CSS v4 · inline SVG charts · Docker · GitHub Actions
+
+## License
+
+MIT
