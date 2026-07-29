@@ -49,7 +49,7 @@ export default function Sparkline({
       )}
       <path d={path} fill="none" stroke={STROKE[level]} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
       {/* end marker with a surface ring so it stays legible over the line */}
-      <circle cx={x(values.length - 1)} cy={y(last)} r="3.5" fill={STROKE[level]} stroke="#0f172a" strokeWidth="2" />
+      <circle cx={x(values.length - 1)} cy={y(last)} r="3.5" fill={STROKE[level]} stroke="var(--surface)" strokeWidth="2" />
     </svg>
   );
 }

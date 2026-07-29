@@ -1,6 +1,50 @@
 @import "tailwindcss";
 
+/* Enable `dark:` variants driven by the data-theme attribute (not the OS). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Light theme (default) */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #f0f2f5;
+  --hover: #eef1f4;
+  --border: #e2e5ea;
+  --border-2: #d0d5dd;
+  --fg: #131519;
+  --muted: #565e6a;
+  --dim: #868d98;
+  --accent: #1f6feb;
+  --accent-ink: #ffffff;
+}
+
+:root[data-theme="dark"] {
+  --bg: #0b0d10;
+  --surface: #12151a;
+  --surface-2: #191d24;
+  --hover: #1d222a;
+  --border: #242a33;
+  --border-2: #333b47;
+  --fg: #e7eaee;
+  --muted: #9aa2ad;
+  --dim: #6a7280;
+  --accent: #4c8dff;
+  --accent-ink: #ffffff;
+}
+
+/* Expose the tokens as Tailwind color utilities (bg-surface, text-muted, …). */
 @theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-hover: var(--hover);
+  --color-line: var(--border);
+  --color-line-2: var(--border-2);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-dim: var(--dim);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
